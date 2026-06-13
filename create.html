@@ -348,7 +348,13 @@
     document.getElementById('prev-polaroid-frame').src = polaroidFrames[color];
   }
 
-  // PHOTO — auto-crop to 3:4 using canvas
+  // SUPABASE config
+  const SUPA_URL    = 'https://wsahegkcmbtlwnxhojun.supabase.co';
+  const SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYWhlZ2tjbWJ0bHdueGhvanVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDQ0MDIsImV4cCI6MjA5NjkyMDQwMn0.KRwudd80t0GQtOqmXyga_0Sar4LtnTzvockctR4tnGs';
+  const SUPA_BUCKET = 'photos';
+  let photoUrl = null;
+
+  // PHOTO — auto-crop 3:4, upload to Supabase, store public URL
   function handlePhoto(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -360,21 +366,42 @@
         let sw = original.width, sh = original.height;
         if (sw/sh > targetRatio) { sw = sh * targetRatio; }
         else { sh = sw / targetRatio; }
-        const sx = (original.width  - sw) / 2;
+        const sx = (original.width - sw) / 2;
         const sy = (original.height - sh) / 2;
         const canvas = document.createElement('canvas');
-        canvas.width = 160; canvas.height = 213;
+        canvas.width = 480; canvas.height = 640;
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(original, sx, sy, sw, sh, 0, 0, 160, 213);
-        photoData = canvas.toDataURL('image/jpeg', 0.72);
+        ctx.drawImage(original, sx, sy, sw, sh, 0, 0, 480, 640);
+        // Show preview immediately
         const img = document.getElementById('prev-photo');
-        img.src = photoData;
+        img.src = canvas.toDataURL('image/jpeg', 0.8);
         img.style.display = 'block';
         document.getElementById('prev-photo-placeholder').style.display = 'none';
-        document.getElementById('upload-zone').querySelector('p').textContent = file.name;
+        document.getElementById('upload-zone').querySelector('p').textContent = 'Uploading...';
         enableDrag(document.getElementById('prev-photo-clip'), img);
+        // Upload to Supabase Storage
+        canvas.toBlob(async blob => {
+          const filename = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + '.jpg';
+          try {
+            const res = await fetch(SUPA_URL + '/storage/v1/object/' + SUPA_BUCKET + '/' + filename, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+              body: blob
+            });
+            if (res.ok) {
+              photoUrl = SUPA_URL + '/storage/v1/object/public/' + SUPA_BUCKET + '/' + filename;
+              document.getElementById('upload-zone').querySelector('p').textContent = 'Photo uploaded';
+            } else {
+              document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
+              photoUrl = null;
+            }
+          } catch(err) {
+            document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
+            photoUrl = null;
+          }
+        }, 'image/jpeg', 0.8);
       };
       original.src = ev.target.result;
     };
@@ -422,7 +449,7 @@
     window.addEventListener('touchend', () => dragging = false);
   }
 
-  // MUSIC SEARCH — iTunes API with proxy fallback for mobile CORS
+  // MUSIC SEARCH — iTunes API
   function searchSong() {
     const q = document.getElementById('inp-song').value.trim();
     const dd = document.getElementById('music-dropdown');
@@ -431,43 +458,29 @@
     dd.innerHTML = '<div class="music-searching">Searching...</div>';
     dd.classList.add('open');
     searchTimer = setTimeout(() => {
-      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=6&media=music`;
-
-      function renderResults(data) {
-        if (!data.results || !data.results.length) {
-          dd.innerHTML = '<div class="music-searching">No results found</div>';
-          return;
-        }
-        // Store results in array to avoid inline onclick escaping issues
-        window._musicResults = data.results;
-        dd.innerHTML = data.results.map((s, i) =>
-          `<div class="music-result" onclick="selectSongIdx(${i})">
-            <img src="${s.artworkUrl60||''}" alt="" onerror="this.style.display='none'"/>
-            <div class="music-result-info">
-              <div class="music-result-title">${s.trackName}</div>
-              <div class="music-result-artist">${s.artistName}</div>
-            </div>
-          </div>`
-        ).join('');
-      }
-
-      // Direct fetch first (desktop), fallback to allorigins proxy (fixes mobile CORS)
-      fetch(itunesUrl)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(renderResults)
-        .catch(() => {
-          fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(itunesUrl)}`)
-            .then(r => r.json())
-            .then(proxy => renderResults(JSON.parse(proxy.contents)))
-            .catch(() => { dd.innerHTML = '<div class="music-searching">Search failed, try again</div>'; });
-        });
+      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=6&media=music`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.results || !data.results.length) {
+            dd.innerHTML = '<div class="music-searching">No results found</div>';
+            return;
+          }
+          dd.innerHTML = data.results.map(s => {
+            const title   = s.trackName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            const artist  = s.artistName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            const art     = (s.artworkUrl60||'').replace(/'/g,"\\'");
+            const preview = (s.previewUrl||'').replace(/'/g,"\\'");
+            return `<div class="music-result" onclick="selectSong('${title}','${artist}','${art}','${preview}')">
+              <img src="${s.artworkUrl60||''}" alt="" onerror="this.style.display='none'"/>
+              <div class="music-result-info">
+                <div class="music-result-title">${s.trackName}</div>
+                <div class="music-result-artist">${s.artistName}</div>
+              </div>
+            </div>`;
+          }).join('');
+        })
+        .catch(() => { dd.innerHTML = '<div class="music-searching">Search failed, try again</div>'; });
     }, 450);
-  }
-
-  function selectSongIdx(i) {
-    const s = (window._musicResults || [])[i];
-    if (!s) return;
-    selectSong(s.trackName, s.artistName, s.artworkUrl60 || '', s.previewUrl || '');
   }
 
   function selectSong(title, artist, art, preview) {
@@ -502,13 +515,17 @@
 
   // SHARE
   function showShare() {
+    if (document.getElementById('upload-zone').querySelector('p').textContent === 'Uploading...') {
+      alert('Foto masih diupload, tunggu sebentar ya!');
+      return;
+    }
     const data = {
       t: document.getElementById('inp-title').value,
       m: document.getElementById('inp-message').value,
       f: document.getElementById('inp-from').value,
       s: currentSign,
       c: currentColor,
-      p: photoData,
+      p: photoUrl,   // now a short public URL, not base64
       song: selectedSong
     };
     try {
@@ -519,7 +536,7 @@
       document.getElementById('share-link-box').textContent = link;
       document.getElementById('share-modal').classList.add('open');
     } catch(e) {
-      alert('Gagal membuat link. Coba kurangi ukuran foto.');
+      alert('Gagal membuat link.');
     }
   }
 
