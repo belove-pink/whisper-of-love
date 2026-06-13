@@ -266,6 +266,506 @@
               <div class="letter-message" id="prev-message">love message</div>
               <div class="letter-footer">
                 <div class="letter-from">With love,<br><span id="prev-from">Your name</span></div>
+                <img src="kiss.png" class="letter-kiss" id="prev-kiss" alt="kiss"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BACK: Polaroid -->
+        <div class="stamp-face stamp-back-face">
+          <div class="stamp-perforated">
+            <div class="polaroid-content">
+              <div class="polaroid-song" id="prev-song">song title</div>
+              <div class="polaroid-tilt">
+                <div class="polaroid-frame-wrap">
+                  <div class="photo-clip" id="prev-photo-clip">
+                    <div class="polaroid-placeholder" id="prev-photo-placeholder">3:4 photo</div>
+                    <img src="" class="polaroid-photo" id="prev-photo" alt="" draggable="false"/>
+                  </div>
+                  <img src=" polaroid-grey.png" class="polaroid-frame" id="prev-polaroid-frame" alt=""/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="flip-hint">click to flip</p>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal-box">
+    <h3>Your whisper is ready ✦</h3>
+    <p>Copy this link and send it to your person 💌</p>
+    <div class="link-box" id="share-link-box"></div>
+    <button class="copy-btn" onclick="copyLink()">Copy link</button>
+    <button class="close-modal" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  let isFlipped = false;
+  let currentSign = 'none';
+  let currentColor = 'grey';
+  let photoData = null;
+  let selectedSong = null;
+  let searchTimer = null;
+
+  const polaroidFrames = {
+    grey:'polaroid-grey.png', pink:'polaroid-pink.png',
+    lavender:'polaroid-lavender.png', teal:'polaroid-teal.png',
+    navy:'polaroid-navy.png', maroon:' polaroid-maroon.png'
+  };
+
+  // FLIP
+  function flipStamp() {
+    isFlipped = !isFlipped;
+    document.getElementById('stamp-flipper').classList.toggle('flipped', isFlipped);
+    document.getElementById('form-letter').style.display   = isFlipped ? 'none'  : 'block';
+    document.getElementById('form-polaroid').style.display = isFlipped ? 'block' : 'none';
+    document.getElementById('step-letter').classList.toggle('active', !isFlipped);
+    document.getElementById('step-polaroid').classList.toggle('active', isFlipped);
+  }
+  function goToSide(side) { if (isFlipped !== (side==='polaroid')) flipStamp(); }
+
+  // SIGN
+  function setSign(val) {
+    currentSign = val;
+    document.getElementById('sign-none').classList.toggle('selected', val==='none');
+    document.getElementById('sign-kiss').classList.toggle('selected', val==='kiss');
+    document.getElementById('prev-kiss').classList.toggle('visible', val==='kiss');
+  }
+
+  // COLOR
+  function setColor(color, el) {
+    currentColor = color;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('prev-polaroid-frame').src = polaroidFrames[color];
+  }
+
+  // SUPABASE config
+  const SUPA_URL    = 'https://wsahegkcmbtlwnxhojun.supabase.co';
+  const SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYWhlZ2tjbWJ0bHdueGhvanVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDQ0MDIsImV4cCI6MjA5NjkyMDQwMn0.KRwudd80t0GQtOqmXyga_0Sar4LtnTzvockctR4tnGs';
+  const SUPA_BUCKET = 'photos';
+  let photoUrl = null;
+
+  // PHOTO — auto-crop 3:4, upload to Supabase, store public URL
+  function handlePhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const original = new Image();
+      original.onload = () => {
+        const targetRatio = 3/4;
+        let sw = original.width, sh = original.height;
+        if (sw/sh > targetRatio) { sw = sh * targetRatio; }
+        else { sh = sw / targetRatio; }
+        const sx = (original.width - sw) / 2;
+        const sy = (original.height - sh) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = 480; canvas.height = 640;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(original, sx, sy, sw, sh, 0, 0, 480, 640);
+        // Show preview immediately
+        const img = document.getElementById('prev-photo');
+        img.src = canvas.toDataURL('image/jpeg', 0.8);
+        img.style.display = 'block';
+        document.getElementById('prev-photo-placeholder').style.display = 'none';
+        document.getElementById('upload-zone').querySelector('p').textContent = 'Uploading...';
+        enableDrag(document.getElementById('prev-photo-clip'), img);
+        // Upload to Supabase Storage
+        canvas.toBlob(async blob => {
+          const filename = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + '.jpg';
+          try {
+            const res = await fetch(SUPA_URL + '/storage/v1/object/' + SUPA_BUCKET + '/' + filename, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+              body: blob
+            });
+            if (res.ok) {
+              photoUrl = SUPA_URL + '/storage/v1/object/public/' + SUPA_BUCKET + '/' + filename;
+              document.getElementById('upload-zone').querySelector('p').textContent = 'Photo uploaded';
+            } else {
+              document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
+              photoUrl = null;
+            }
+          } catch(err) {
+            document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
+            photoUrl = null;
+          }
+        }, 'image/jpeg', 0.8);
+      };
+      original.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function enableDrag(clip, img) {
+    let dragging = false, startX, startY, origLeft, origTop;
+
+    function clampPos(left, top) {
+      const cw = clip.offsetWidth, ch = clip.offsetHeight;
+      const iw = img.offsetWidth, ih = img.offsetHeight;
+      // photo must be at least as big as clip (object-fit:cover guarantees this at 100%)
+      const minLeft = Math.min(0, cw - iw);
+      const minTop  = Math.min(0, ch - ih);
+      return {
+        left: Math.max(minLeft, Math.min(0, left)),
+        top:  Math.max(minTop,  Math.min(0, top))
+      };
+    }
+
+    clip.addEventListener('mousedown', e => {
+      dragging = true; startX = e.clientX; startY = e.clientY;
+      origLeft = parseInt(img.style.left)||0; origTop = parseInt(img.style.top)||0;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const p = clampPos(origLeft + e.clientX - startX, origTop + e.clientY - startY);
+      img.style.left = p.left + 'px';
+      img.style.top  = p.top  + 'px';
+    });
+    window.addEventListener('mouseup', () => dragging = false);
+    clip.addEventListener('touchstart', e => {
+      dragging = true;
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      origLeft = parseInt(img.style.left)||0; origTop = parseInt(img.style.top)||0;
+    }, {passive:true});
+    window.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const p = clampPos(origLeft + e.touches[0].clientX - startX, origTop + e.touches[0].clientY - startY);
+      img.style.left = p.left + 'px';
+      img.style.top  = p.top  + 'px';
+    }, {passive:true});
+    window.addEventListener('touchend', () => dragging = false);
+  }
+
+  // MUSIC SEARCH — iTunes API
+  function searchSong() {
+    const q = document.getElementById('inp-song').value.trim();
+    const dd = document.getElementById('music-dropdown');
+    if (!q) { dd.classList.remove('open'); return; }
+    clearTimeout(searchTimer);
+    dd.innerHTML = '<div class="music-searching">Searching...</div>';
+    dd.classList.add('open');
+    searchTimer = setTimeout(() => {
+      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=6&media=music';
+      function renderResults(data) {
+        if (!data.results || !data.results.length) {
+          dd.innerHTML = '<div class="music-searching">No results found</div>';
+          return;
+        }
+        window._musicResults = data.results;
+        dd.innerHTML = data.results.map((s, i) =>
+          '<div class="music-result" onclick="selectSongIdx(' + i + ')">' +
+          '<img src="' + (s.artworkUrl60||'') + '" alt="" onerror="this.style.display='none'"/>' +
+          '<div class="music-result-info">' +
+          '<div class="music-result-title">' + s.trackName + '</div>' +
+          '<div class="music-result-artist">' + s.artistName + '</div>' +
+          '</div></div>'
+        ).join('');
+      }
+      fetch(itunesUrl)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(renderResults)
+        .catch(() => {
+          fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(itunesUrl))
+            .then(r => r.json())
+            .then(proxy => renderResults(JSON.parse(proxy.contents)))
+            .catch(() => {
+              fetch('https://corsproxy.io/?' + encodeURIComponent(itunesUrl))
+                .then(r => r.json())
+                .then(renderResults)
+                .catch(() => { dd.innerHTML = '<div class="music-searching">Coba lagi / Check internet</div>'; });
+            });
+        });
+    }, 450);
+  }
+
+  function selectSongIdx(i) {
+    const s = (window._musicResults || [])[i];
+    if (s) selectSong(s.trackName, s.artistName, s.artworkUrl60 || '', s.previewUrl || '');
+  }
+
+    function selectSong(title, artist, art, preview) {
+    selectedSong = { title, artist, art, preview };
+    document.getElementById('inp-song').value = '';
+    document.getElementById('music-dropdown').classList.remove('open');
+    document.getElementById('ms-title').textContent  = title;
+    document.getElementById('ms-artist').textContent = artist;
+    document.getElementById('ms-thumb').src          = art;
+    document.getElementById('music-selected').style.display = 'flex';
+    document.getElementById('prev-song').textContent = title;
+  }
+
+  function clearSong() {
+    selectedSong = null;
+    document.getElementById('inp-song').value = '';
+    document.getElementById('music-selected').style.display = 'none';
+    document.getElementById('prev-song').textContent = 'song title';
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.music-search-wrap'))
+      document.getElementById('music-dropdown').classList.remove('open');
+  });
+
+  // PREVIEW
+  function updatePreview() {
+    document.getElementById('prev-title').textContent = (document.getElementById('inp-title').value || 'TITLE').toUpperCase();
+    document.getElementById('prev-message').innerHTML = (document.getElementById('inp-message').value || 'love message').replace(/\n/g,'<br>');
+    document.getElementById('prev-from').textContent  = document.getElementById('inp-from').value || 'Your name';
+  }
+
+  // SHARE
+  function showShare() {
+    if (document.getElementById('upload-zone').querySelector('p').textContent === 'Uploading...') {
+      alert('Foto masih diupload, tunggu sebentar ya!');
+      return;
+    }
+    const data = {
+      t: document.getElementById('inp-title').value,
+      m: document.getElementById('inp-message').value,
+      f: document.getElementById('inp-from').value,
+      s: currentSign,
+      c: currentColor,
+      p: photoUrl,   // now a short public URL, not base64
+      song: selectedSong
+    };
+    try {
+      const json = JSON.stringify(data);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      const base = window.location.origin + window.location.pathname.replace('create.html','');
+      const link = base + 'card.html?d=' + encoded;
+      document.getElementById('share-link-box').textContent = link;
+      document.getElementById('share-modal').classList.add('open');
+    } catch(e) {
+      alert('Gagal membuat link.');
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(document.getElementById('share-link-box').textContent).then(() => {
+      document.querySelector('.copy-btn').textContent = 'Copied! ✓';
+      setTimeout(() => document.querySelector('.copy-btn').textContent = 'Copy link', 2000);
+    });
+  }
+  function closeModal() { document.getElementById('share-modal').classList.remove('open'); }
+</script>
+</body>
+</html>
+
+  /* color swatches */
+  .color-grid { display: grid; grid-template-columns: repeat(6, 36px); gap: 10px; margin-top: 10px; }
+  .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s, transform 0.15s; overflow: hidden; }
+  .color-swatch.selected { border-color: #f0ede8; transform: scale(1.1); }
+
+  /* upload */
+  .upload-zone { border: 1.5px dashed rgba(255,255,255,0.25); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+  .upload-zone:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.04); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone p { font-size: 13px; color: #a09890; }
+  .upload-zone .upload-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+
+  /* buttons */
+  .action-row { margin-top: 32px; }
+  .btn-primary { width: 100%; background: #f0ede8; color: #2a2825; border: none; border-radius: 100px; padding: 13px 24px; font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+  .btn-primary:hover { background: #fff; transform: translateY(-1px); }
+
+  /* PREVIEW SIDE */
+  .preview-side { display: flex; flex-direction: column; align-items: center; padding-top: 20px; position: sticky; top: 20px; }
+
+  /* STAMP */
+  .stamp-flip-wrap { perspective: 1000px; width: 340px; height: 460px; cursor: pointer; }
+  .stamp-flip-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .stamp-flip-inner.flipped { transform: rotateY(180deg); }
+  .stamp-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .stamp-back-face { transform: rotateY(180deg); }
+
+  .stamp-perforated {
+    width: 100%; height: 100%; background: #ece9e4; border-radius: 6px;
+    --s: 11px; --c: #4a4542;
+    mask:
+      radial-gradient(circle at 50% 0%,   var(--c) var(--s), transparent var(--s)) top    / 22px 22px,
+      radial-gradient(circle at 50% 100%, var(--c) var(--s), transparent var(--s)) bottom / 22px 22px,
+      radial-gradient(circle at 0%  50%,  var(--c) var(--s), transparent var(--s)) left   / 22px 22px,
+      radial-gradient(circle at 100% 50%, var(--c) var(--s), transparent var(--s)) right  / 22px 22px,
+      linear-gradient(#fff,#fff);
+    mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y, no-repeat;
+    mask-composite: exclude, exclude, exclude, exclude, add;
+    -webkit-mask:
+      radial-gradient(circle at 50% 0%,   var(--c) var(--s), transparent var(--s)) top    / 22px 22px,
+      radial-gradient(circle at 50% 100%, var(--c) var(--s), transparent var(--s)) bottom / 22px 22px,
+      radial-gradient(circle at 0%  50%,  var(--c) var(--s), transparent var(--s)) left   / 22px 22px,
+      radial-gradient(circle at 100% 50%, var(--c) var(--s), transparent var(--s)) right  / 22px 22px,
+      linear-gradient(#fff,#fff);
+    -webkit-mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y, no-repeat;
+    -webkit-mask-composite: source-out, source-out, source-out, source-out, source-over;
+  }
+
+  /* LETTER */
+  .letter-content { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 28px 26px 22px; background: #ece9e4; }
+  .letter-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #1a1714; text-decoration: underline; text-underline-offset: 5px; margin-bottom: 20px; text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: 0.05em; min-height: 28px; }
+  .letter-message { flex: 1; font-family: 'Playfair Display', serif; font-style: italic; font-size: 13.5px; color: #2a2522; line-height: 1.8; text-align: center; display: flex; align-items: center; justify-content: center; white-space: pre-wrap; word-break: break-word; }
+  .letter-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; }
+  .letter-from { font-size: 12px; color: #5a5250; line-height: 1.5; }
+  .letter-from span { display: block; font-weight: 500; color: #2a2522; }
+  .letter-kiss { width: 58px; height: 42px; object-fit: cover; object-position: center 20%; display: none; }
+  .letter-kiss.visible { display: block; }
+
+  /* POLAROID */
+  .polaroid-content { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; background: #ece9e4; gap: 12px; }
+  .polaroid-song { font-family: 'Playfair Display', serif; font-style: italic; font-size: 13px; color: #3a3530; text-align: center; min-height: 18px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .polaroid-tilt { transform: rotate(-6deg); }
+  /* Exact 3:4 ratio matching the PNG */
+  .polaroid-frame-wrap { position: relative; width: 168px; height: 224px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #000; }
+  .polaroid-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 2; pointer-events: none; }
+  /* Photo sits behind frame using mix-blend-mode since frame background is black */
+  .photo-clip { position: absolute; inset: 0; overflow: hidden; cursor: grab; z-index: 1; }
+  .photo-clip:active { cursor: grabbing; }
+  .polaroid-photo { position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: center; user-select: none; display: none; top: 0; left: 0; }
+  .polaroid-placeholder { position: absolute; inset: 0; background: #555; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #bbb; }
+
+  .flip-hint { font-size: 11px; color: rgba(240,237,232,0.45); margin-top: 14px; letter-spacing: 0.06em; user-select: none; }
+
+  /* modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(30,28,26,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-box { background: #3a3734; border-radius: 16px; padding: 32px; max-width: 380px; width: 90%; text-align: center; }
+  .modal-box h3 { font-family: 'DM Serif Display', serif; font-size: 22px; font-style: italic; margin-bottom: 8px; }
+  .modal-box p { font-size: 13px; color: #a09890; margin-bottom: 20px; line-height: 1.6; }
+  .link-box { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 16px; font-size: 11px; color: #d4cfc9; word-break: break-all; margin-bottom: 16px; text-align: left; }
+  .copy-btn { width: 100%; background: #f0ede8; color: #2a2825; border: none; border-radius: 100px; padding: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; }
+  .copy-btn:hover { background: #fff; }
+  .close-modal { background: transparent; border: none; color: #a09890; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .layout { grid-template-columns: 1fr; padding: 16px 20px 80px; gap: 24px; }
+    .form-side { padding-right: 0; }
+    .preview-side { position: static; order: -1; }
+    .stamp-flip-wrap { width: 260px; height: 348px; }
+    .polaroid-frame-wrap { width: 124px; height: 166px; }
+    .nav-steps { display: none; }
+    .action-row { margin-top: 20px; }
+  }
+  @media (max-width: 480px) {
+    nav { padding: 14px 16px; }
+    .nav-logo-text { font-size: 18px; }
+    .layout { padding: 12px 16px 80px; gap: 20px; }
+    .stamp-flip-wrap { width: 240px; height: 320px; }
+    .polaroid-frame-wrap { width: 110px; height: 147px; }
+    .form-label { font-size: 13px; }
+    .form-input, .form-textarea { font-size: 13px; padding: 10px 14px; }
+    .color-grid { grid-template-columns: repeat(6, 32px); gap: 8px; }
+    .color-swatch { width: 32px; height: 32px; }
+    .modal-box { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span class="nav-logo-text">Whisper of Love</span></a>
+  <div class="nav-steps">
+    <span class="step" id="step-polaroid" onclick="goToSide('polaroid')">Polaroid</span>
+    <span style="color:#605850">·</span>
+    <span class="step active" id="step-letter" onclick="goToSide('letter')">Letter</span>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="form-side">
+
+    <!-- LETTER FORM -->
+    <div id="form-letter">
+      <div class="form-section">
+        <label class="form-label">Title:</label>
+        <input class="form-input" id="inp-title" type="text" placeholder="e.g. For you, always" oninput="updatePreview()"/>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Write your love message:</label>
+        <textarea class="form-textarea" id="inp-message" placeholder="love message" oninput="updatePreview()"></textarea>
+      </div>
+      <div class="form-section">
+        <label class="form-label">With love, who?:</label>
+        <input class="form-input" id="inp-from" type="text" placeholder="Your name" oninput="updatePreview()"/>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Pick your sign:</label>
+        <div class="sign-row">
+          <div class="sign-option sign-none selected" id="sign-none" onclick="setSign('none')"></div>
+          <div class="sign-option sign-kiss" id="sign-kiss" onclick="setSign('kiss')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POLAROID FORM -->
+    <div id="form-polaroid" style="display:none">
+      <div class="form-section">
+        <label class="form-label">Choose your whisper:</label>
+        <div class="music-search-wrap">
+          <input class="form-input" id="inp-song" type="text" placeholder="Search a song..." oninput="searchSong()" autocomplete="off"/>
+          <div class="music-dropdown" id="music-dropdown"></div>
+          <div class="music-selected" id="music-selected" style="display:none">
+            <img class="ms-thumb" id="ms-thumb" src="" alt=""/>
+            <div class="ms-info">
+              <div class="ms-title" id="ms-title">—</div>
+              <div class="ms-artist" id="ms-artist">—</div>
+            </div>
+            <button class="ms-clear" onclick="clearSong()">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Upload photo (3:4):</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" accept="image/*" onchange="handlePhoto(event)"/>
+          <span class="upload-icon">📷</span>
+          <p>Click or drag photo here</p>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Polaroid color:</label>
+        <div class="color-grid">
+          <div class="color-swatch selected" data-color="grey"     onclick="setColor('grey',this)" style="background:#c8c4c0"></div>
+          <div class="color-swatch" data-color="pink"     onclick="setColor('pink',this)" style="background:#e8a0a8"></div>
+          <div class="color-swatch" data-color="lavender" onclick="setColor('lavender',this)" style="background:#b8a8d0"></div>
+          <div class="color-swatch" data-color="teal"     onclick="setColor('teal',this)" style="background:#7ab8b8"></div>
+          <div class="color-swatch" data-color="navy"     onclick="setColor('navy',this)" style="background:#4a5880"></div>
+          <div class="color-swatch" data-color="maroon"   onclick="setColor('maroon',this)" style="background:#8a3a40"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" onclick="showShare()">✦ Share this whisper</button>
+    </div>
+  </div>
+
+  <!-- PREVIEW SIDE -->
+  <div class="preview-side">
+    <div class="stamp-flip-wrap" onclick="flipStamp()">
+      <div class="stamp-flip-inner" id="stamp-flipper">
+
+        <!-- FRONT: Letter -->
+        <div class="stamp-face">
+          <div class="stamp-perforated">
+            <div class="letter-content">
+              <div class="letter-title" id="prev-title">TITLE</div>
+              <div class="letter-message" id="prev-message">love message</div>
+              <div class="letter-footer">
+                <div class="letter-from">With love,<br><span id="prev-from">Your name</span></div>
                 <img src=" kiss.png" class="letter-kiss" id="prev-kiss" alt="kiss"/>
               </div>
             </div>
