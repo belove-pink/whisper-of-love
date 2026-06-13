@@ -363,9 +363,12 @@
         const sx = (original.width  - sw) / 2;
         const sy = (original.height - sh) / 2;
         const canvas = document.createElement('canvas');
-        canvas.width = 600; canvas.height = 800;
-        canvas.getContext('2d').drawImage(original, sx, sy, sw, sh, 0, 0, 600, 800);
-        photoData = canvas.toDataURL('image/jpeg', 0.85);
+        canvas.width = 160; canvas.height = 213;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(original, sx, sy, sw, sh, 0, 0, 160, 213);
+        photoData = canvas.toDataURL('image/jpeg', 0.72);
         const img = document.getElementById('prev-photo');
         img.src = photoData;
         img.style.display = 'block';
@@ -419,7 +422,7 @@
     window.addEventListener('touchend', () => dragging = false);
   }
 
-  // MUSIC SEARCH — iTunes API
+  // MUSIC SEARCH — iTunes API with proxy fallback for mobile CORS
   function searchSong() {
     const q = document.getElementById('inp-song').value.trim();
     const dd = document.getElementById('music-dropdown');
@@ -428,29 +431,43 @@
     dd.innerHTML = '<div class="music-searching">Searching...</div>';
     dd.classList.add('open');
     searchTimer = setTimeout(() => {
-      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=6&media=music`)
-        .then(r => r.json())
-        .then(data => {
-          if (!data.results || !data.results.length) {
-            dd.innerHTML = '<div class="music-searching">No results found</div>';
-            return;
-          }
-          dd.innerHTML = data.results.map(s => {
-            const title   = s.trackName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-            const artist  = s.artistName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-            const art     = (s.artworkUrl60||'').replace(/'/g,"\\'");
-            const preview = (s.previewUrl||'').replace(/'/g,"\\'");
-            return `<div class="music-result" onclick="selectSong('${title}','${artist}','${art}','${preview}')">
-              <img src="${s.artworkUrl60||''}" alt="" onerror="this.style.display='none'"/>
-              <div class="music-result-info">
-                <div class="music-result-title">${s.trackName}</div>
-                <div class="music-result-artist">${s.artistName}</div>
-              </div>
-            </div>`;
-          }).join('');
-        })
-        .catch(() => { dd.innerHTML = '<div class="music-searching">Search failed, try again</div>'; });
+      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=6&media=music`;
+
+      function renderResults(data) {
+        if (!data.results || !data.results.length) {
+          dd.innerHTML = '<div class="music-searching">No results found</div>';
+          return;
+        }
+        // Store results in array to avoid inline onclick escaping issues
+        window._musicResults = data.results;
+        dd.innerHTML = data.results.map((s, i) =>
+          `<div class="music-result" onclick="selectSongIdx(${i})">
+            <img src="${s.artworkUrl60||''}" alt="" onerror="this.style.display='none'"/>
+            <div class="music-result-info">
+              <div class="music-result-title">${s.trackName}</div>
+              <div class="music-result-artist">${s.artistName}</div>
+            </div>
+          </div>`
+        ).join('');
+      }
+
+      // Direct fetch first (desktop), fallback to allorigins proxy (fixes mobile CORS)
+      fetch(itunesUrl)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(renderResults)
+        .catch(() => {
+          fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(itunesUrl)}`)
+            .then(r => r.json())
+            .then(proxy => renderResults(JSON.parse(proxy.contents)))
+            .catch(() => { dd.innerHTML = '<div class="music-searching">Search failed, try again</div>'; });
+        });
     }, 450);
+  }
+
+  function selectSongIdx(i) {
+    const s = (window._musicResults || [])[i];
+    if (!s) return;
+    selectSong(s.trackName, s.artistName, s.artworkUrl60 || '', s.previewUrl || '');
   }
 
   function selectSong(title, artist, art, preview) {
