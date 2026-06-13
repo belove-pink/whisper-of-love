@@ -171,7 +171,6 @@
 
 <script>
   let hasFlipped = false;
-  let isFlipped = false;
   let musicStarted = false;
   let isPlaying = false;
   let cardData = {};
@@ -222,11 +221,11 @@
   }
 
   function handleFlip() {
-    // First flip: start music, then allow free toggle
+    const flipper = document.getElementById('card-flipper');
     if (!hasFlipped) {
+      // First flip: show letter, trigger music
       hasFlipped = true;
-      isFlipped = true;
-      document.getElementById('card-flipper').classList.add('flipped');
+      flipper.classList.add('flipped');
       document.getElementById('flip-hint-text').style.opacity = '0';
       if (cardData.song && cardData.song.preview) {
         document.getElementById('music-player').classList.add('visible');
@@ -235,13 +234,13 @@
         const promise = audio.play();
         if (promise !== undefined) {
           promise.then(() => {
-            isPlaying = true; musicStarted = true;
-            updatePlayBtn();
+            isPlaying = true; musicStarted = true; updatePlayBtn();
             audio.pause();
             setTimeout(() => {
               audio.play().then(() => { isPlaying = true; updatePlayBtn(); }).catch(() => {});
             }, 900);
           }).catch(() => {
+            musicStarted = true;
             isPlaying = false; updatePlayBtn();
             const sub = document.querySelector('.music-sub');
             if (sub) sub.textContent = 'tap ▶ to play';
@@ -250,22 +249,14 @@
       } else {
         musicStarted = true;
       }
-      return;
-    }
-    // After first flip: toggle freely
-    if (!musicStarted) return;
-    isFlipped = !isFlipped;
-    const flipper = document.getElementById('card-flipper');
-    if (isFlipped) {
-      flipper.classList.add('flipped');
     } else {
-      flipper.classList.remove('flipped');
+      // Subsequent flips: toggle bebas
+      const isNowFlipped = flipper.classList.toggle('flipped');
+      const hint = document.getElementById('flip-hint-text');
+      hint.textContent = isNowFlipped ? 'click to see front ↺' : 'click to see back ↺';
+      hint.style.opacity = '0.4';
+      setTimeout(() => { hint.style.opacity = '0'; }, 1500);
     }
-    // Update hint
-    const hint = document.getElementById('flip-hint-text');
-    hint.style.opacity = '0.5';
-    hint.textContent = isFlipped ? 'click to see front' : 'click to see back';
-    setTimeout(() => { hint.style.opacity = '0'; }, 1800);
   }
 
   function playAudio() {
