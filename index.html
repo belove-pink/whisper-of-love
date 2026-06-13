@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Whisper of Love</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: #4a4542;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+  .ornament { position: absolute; pointer-events: none; opacity: 0.85; }
+  .ornament-butterfly { left: -20px; top: 50%; transform: translateY(-50%); width: clamp(180px, 22vw, 280px); }
+  .ornament-heart { right: -20px; top: 50%; transform: translateY(-50%); width: clamp(180px, 22vw, 280px); }
+
+  .hero { display: flex; flex-direction: column; align-items: center; z-index: 2; text-align: center; }
+
+  .logo-wrap {
+    width: clamp(200px, 30vw, 360px);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .logo-img {
+    width: 100%;
+    display: block;
+    margin-top: -15%;
+    margin-bottom: -25%;
+  }
+
+  .stamp-stack {
+    position: relative;
+    width: clamp(160px, 22vw, 240px);
+    height: clamp(200px, 28vw, 300px);
+    margin-bottom: 40px;
+  }
+  .stamp-back { position: absolute; bottom: 0; right: -18px; width: 88%; transform: rotate(6deg); opacity: 0.9; animation: floatB 4s ease-in-out infinite; }
+  .stamp-front { position: absolute; bottom: 10px; left: -10px; width: 88%; transform: rotate(-5deg); animation: floatA 3.5s ease-in-out infinite; }
+
+  @keyframes floatA {
+    0%, 100% { transform: rotate(-5deg) translateY(0px); }
+    50%       { transform: rotate(-5deg) translateY(-12px); }
+  }
+  @keyframes floatB {
+    0%, 100% { transform: rotate(6deg) translateY(0px); opacity: 0.9; }
+    50%       { transform: rotate(6deg) translateY(-8px); opacity: 0.9; }
+  }
+
+  .cta-btn {
+    background: #f0ede8; color: #2a2825; border: none; border-radius: 100px;
+    padding: 14px 36px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+    font-weight: 400; cursor: pointer; letter-spacing: 0.01em;
+    transition: background 0.2s, transform 0.15s; text-decoration: none; display: inline-block;
+  }
+  .cta-btn:hover { background: #ffffff; transform: translateY(-2px); }
+  .cta-btn:active { transform: scale(0.97); }
+
+  @media (max-width: 600px) {
+    .ornament-butterfly { left: -60px; width: 120px; opacity: 0.4; }
+    .ornament-heart { right: -60px; width: 120px; opacity: 0.4; }
+    .stamp-stack { width: 130px; height: 165px; margin-bottom: 32px; }
+    .logo-wrap { width: clamp(160px, 60vw, 260px); }
+    .cta-btn { padding: 13px 32px; font-size: 14px; }
+  }
+  @media (max-width: 380px) {
+    .ornament { display: none; }
+    .stamp-stack { width: 120px; height: 152px; }
+  }
+</style>
+</head>
+<body>
+<img src="assets/butterfly.png" class="ornament ornament-butterfly" alt=""/>
+<img src="assets/heart.png" class="ornament ornament-heart" alt=""/>
+<div class="hero">
+  <div class="logo-wrap">
+    <img src="assets/logo.png" class="logo-img" alt="Whisper of Love"/>
+  </div>
+  <div class="stamp-stack">
+    <img src="assets/stamp-blank.png" class="stamp-back" alt=""/>
+    <img src="assets/stamp-squiggle.png" class="stamp-front" alt=""/>
+  </div>
+  <a href="create.html" class="cta-btn">Create your whisper</a>
+</div>
+</body>
+</html>
