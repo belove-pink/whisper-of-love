@@ -458,32 +458,45 @@
     dd.innerHTML = '<div class="music-searching">Searching...</div>';
     dd.classList.add('open');
     searchTimer = setTimeout(() => {
-      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=6&media=music`)
-        .then(r => r.json())
-        .then(data => {
-          if (!data.results || !data.results.length) {
-            dd.innerHTML = '<div class="music-searching">No results found</div>';
-            return;
-          }
-          dd.innerHTML = data.results.map(s => {
-            const title   = s.trackName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-            const artist  = s.artistName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-            const art     = (s.artworkUrl60||'').replace(/'/g,"\\'");
-            const preview = (s.previewUrl||'').replace(/'/g,"\\'");
-            return `<div class="music-result" onclick="selectSong('${title}','${artist}','${art}','${preview}')">
-              <img src="${s.artworkUrl60||''}" alt="" onerror="this.style.display='none'"/>
-              <div class="music-result-info">
-                <div class="music-result-title">${s.trackName}</div>
-                <div class="music-result-artist">${s.artistName}</div>
-              </div>
-            </div>`;
-          }).join('');
-        })
-        .catch(() => { dd.innerHTML = '<div class="music-searching">Search failed, try again</div>'; });
+      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=6&media=music';
+      function renderResults(data) {
+        if (!data.results || !data.results.length) {
+          dd.innerHTML = '<div class="music-searching">No results found</div>';
+          return;
+        }
+        window._musicResults = data.results;
+        dd.innerHTML = data.results.map((s, i) =>
+          '<div class="music-result" onclick="selectSongIdx(' + i + ')">' +
+          '<img src="' + (s.artworkUrl60||'') + '" alt="" onerror="this.style.display='none'"/>' +
+          '<div class="music-result-info">' +
+          '<div class="music-result-title">' + s.trackName + '</div>' +
+          '<div class="music-result-artist">' + s.artistName + '</div>' +
+          '</div></div>'
+        ).join('');
+      }
+      fetch(itunesUrl)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(renderResults)
+        .catch(() => {
+          fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(itunesUrl))
+            .then(r => r.json())
+            .then(proxy => renderResults(JSON.parse(proxy.contents)))
+            .catch(() => {
+              fetch('https://corsproxy.io/?' + encodeURIComponent(itunesUrl))
+                .then(r => r.json())
+                .then(renderResults)
+                .catch(() => { dd.innerHTML = '<div class="music-searching">Coba lagi / Check internet</div>'; });
+            });
+        });
     }, 450);
   }
 
-  function selectSong(title, artist, art, preview) {
+  function selectSongIdx(i) {
+    const s = (window._musicResults || [])[i];
+    if (s) selectSong(s.trackName, s.artistName, s.artworkUrl60 || '', s.previewUrl || '');
+  }
+
+    function selectSong(title, artist, art, preview) {
     selectedSong = { title, artist, art, preview };
     document.getElementById('inp-song').value = '';
     document.getElementById('music-dropdown').classList.remove('open');
