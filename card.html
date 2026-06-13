@@ -105,8 +105,8 @@
 </head>
 <body>
 
-<img src="butterfly.png" class="ornament ornament-butterfly" alt=""/>
-<img src="heart.png" class="ornament ornament-heart" alt=""/>
+<img src="assets/butterfly.png" class="ornament ornament-butterfly" alt=""/>
+<img src="assets/heart.png" class="ornament ornament-heart" alt=""/>
 
 <p class="intro-text">someone is thinking of you ✦</p>
 
@@ -124,7 +124,7 @@
                 <div class="polaroid-placeholder" id="card-photo-placeholder"></div>
                 <img src="" class="polaroid-photo" id="card-photo" alt=""/>
               </div>
-              <img src="polaroid-grey.png" class="polaroid-frame" id="card-polaroid-frame" alt=""/>
+              <img src="assets/polaroid-grey.png" class="polaroid-frame" id="card-polaroid-frame" alt=""/>
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@
           <div class="letter-message" id="card-message"></div>
           <div class="letter-footer">
             <div class="letter-from">With love,<br><span id="card-from">Your name</span></div>
-            <img src="kiss.png" class="letter-kiss" id="card-kiss" alt=""/>
+            <img src="assets/kiss.png" class="letter-kiss" id="card-kiss" alt=""/>
           </div>
         </div>
       </div>
@@ -171,13 +171,15 @@
 
 <script>
   let hasFlipped = false;
+  let isFlipped = false;
+  let musicStarted = false;
   let isPlaying = false;
   let cardData = {};
 
   const polaroidFrames = {
-    grey:'polaroid-grey.png', pink:'polaroid-pink.png',
-    lavender:'polaroid-lavender.png', teal:'polaroid-teal.png',
-    navy:'polaroid-navy.png', maroon:'polaroid-maroon.png'
+    grey:'assets/polaroid-grey.png', pink:'assets/polaroid-pink.png',
+    lavender:'assets/polaroid-lavender.png', teal:'assets/polaroid-teal.png',
+    navy:'assets/polaroid-navy.png', maroon:'assets/polaroid-maroon.png'
   };
 
   function loadCard() {
@@ -220,36 +222,50 @@
   }
 
   function handleFlip() {
-    if (hasFlipped) return;
-    hasFlipped = true;
-    document.getElementById('card-flipper').classList.add('flipped');
-    document.getElementById('flip-hint-text').style.opacity = '0';
-    if (cardData.song && cardData.song.preview) {
-      document.getElementById('music-player').classList.add('visible');
-      // Capture the user gesture context by calling play() directly here,
-      // then delay the actual audio start until after the flip animation
-      const audio = document.getElementById('preview-audio');
-      audio.src = cardData.song.preview;
-      // play() called in same user-gesture stack tick
-      const promise = audio.play();
-      if (promise !== undefined) {
-        promise.then(() => {
-          isPlaying = true;
-          updatePlayBtn();
-          // Briefly pause and resume after animation so it feels timed right
-          audio.pause();
-          setTimeout(() => {
-            audio.play().then(() => { isPlaying = true; updatePlayBtn(); }).catch(() => {});
-          }, 900);
-        }).catch(() => {
-          // Browser blocked — show hint to tap play manually
-          isPlaying = false;
-          updatePlayBtn();
-          const sub = document.querySelector('.music-sub');
-          if (sub) sub.textContent = 'tap ▶ to play';
-        });
+    // First flip: start music, then allow free toggle
+    if (!hasFlipped) {
+      hasFlipped = true;
+      isFlipped = true;
+      document.getElementById('card-flipper').classList.add('flipped');
+      document.getElementById('flip-hint-text').style.opacity = '0';
+      if (cardData.song && cardData.song.preview) {
+        document.getElementById('music-player').classList.add('visible');
+        const audio = document.getElementById('preview-audio');
+        audio.src = cardData.song.preview;
+        const promise = audio.play();
+        if (promise !== undefined) {
+          promise.then(() => {
+            isPlaying = true; musicStarted = true;
+            updatePlayBtn();
+            audio.pause();
+            setTimeout(() => {
+              audio.play().then(() => { isPlaying = true; updatePlayBtn(); }).catch(() => {});
+            }, 900);
+          }).catch(() => {
+            isPlaying = false; updatePlayBtn();
+            const sub = document.querySelector('.music-sub');
+            if (sub) sub.textContent = 'tap ▶ to play';
+          });
+        }
+      } else {
+        musicStarted = true;
       }
+      return;
     }
+    // After first flip: toggle freely
+    if (!musicStarted) return;
+    isFlipped = !isFlipped;
+    const flipper = document.getElementById('card-flipper');
+    if (isFlipped) {
+      flipper.classList.add('flipped');
+    } else {
+      flipper.classList.remove('flipped');
+    }
+    // Update hint
+    const hint = document.getElementById('flip-hint-text');
+    hint.style.opacity = '0.5';
+    hint.textContent = isFlipped ? 'click to see front' : 'click to see back';
+    setTimeout(() => { hint.style.opacity = '0'; }, 1800);
   }
 
   function playAudio() {
