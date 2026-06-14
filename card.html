@@ -241,8 +241,13 @@
 
     if (data.p) {
       const photo = document.getElementById('card-photo');
-      photo.crossOrigin = 'anonymous';
-      photo.src = data.p;
+      // Handle both Supabase URL and base64 fallback
+      if (data.p.startsWith('data:')) {
+        photo.src = data.p;
+      } else {
+        photo.crossOrigin = 'anonymous';
+        photo.src = data.p;
+      }
       photo.style.display = 'block';
       document.getElementById('card-photo-placeholder').style.display = 'none';
     }
