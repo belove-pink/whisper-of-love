@@ -78,15 +78,27 @@
   .music-play-btn:hover { transform:scale(1.08); }
   .music-info { flex:1;overflow:hidden; }
   .music-title-display { font-size:12px;color:#f0ede8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-  .music-sub { font-size:10px;color:rgba(240,237,232,0.5);margin-top:1px; }
+  .music-sub { font-size:10px;color:rgba(240,237,232,0.5);margin-top:1px;transition:all 0.3s; }
   .music-wave { display:flex;gap:2px;align-items:flex-end;height:16px; }
-  .bar { width:3px;background:rgba(240,237,232,0.5);border-radius:2px;height:4px; }
-  .bar.playing { animation:wave 0.8s ease-in-out infinite; }
-  .bar:nth-child(2).playing{animation-delay:0.15s}
-  .bar:nth-child(3).playing{animation-delay:0.3s}
+  .bar { width:3px;background:rgba(240,237,232,0.5);border-radius:2px;height:4px;transition:height 0.15s ease; }
+  .bar.playing { animation:wave 1s ease-in-out infinite; }
+  .bar:nth-child(1).playing{animation-delay:0s}
+  .bar:nth-child(2).playing{animation-delay:0.2s}
+  .bar:nth-child(3).playing{animation-delay:0.4s}
   .bar:nth-child(4).playing{animation-delay:0.1s}
-  .bar:nth-child(5).playing{animation-delay:0.25s}
-  @keyframes wave { 0%,100%{height:4px} 50%{height:14px} }
+  .bar:nth-child(5).playing{animation-delay:0.3s}
+  @keyframes wave { 0%,100%{height:3px} 50%{height:15px} }
+
+  /* smooth music player entrance */
+  .music-player {
+    display:none; margin-top:22px;
+    background:rgba(0,0,0,0.28); border-radius:100px;
+    padding:10px 20px; align-items:center; gap:12px; min-width:240px;
+    opacity:0; transform:translateY(10px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .music-player.visible { display:flex; }
+  .music-player.show { opacity:1; transform:translateY(0); }
 
   .create-own { margin-top:28px;font-size:12px;color:rgba(240,237,232,0.38);text-decoration:none;letter-spacing:0.04em;transition:color 0.2s;animation:fadeIn 2.5s ease both;animation-delay:1s; }
   .create-own:hover { color:rgba(240,237,232,0.75); }
@@ -181,14 +193,36 @@
     navy:'assets/polaroid-navy.png', maroon:'assets/polaroid-maroon.png'
   };
 
-  function loadCard() {
+  const SUPA_URL = 'https://wsahegkcmbtlwnxhojun.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYWhlZ2tjbWJ0bHdueGhvanVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDQ0MDIsImV4cCI6MjA5NjkyMDQwMn0.KRwudd80t0GQtOqmXyga_0Sar4LtnTzvockctR4tnGs';
+
+  async function loadCard() {
     const params = new URLSearchParams(window.location.search);
-    const encoded = params.get('d');
+    const id = params.get('id');
     let data = null;
-    if (encoded) {
-      try { data = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) {}
+
+    if (id) {
+      try {
+        const res = await fetch(SUPA_URL + '/rest/v1/cards?id=eq.' + id + '&limit=1', {
+          headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+        });
+        const rows = await res.json();
+        if (rows && rows[0]) {
+          const r = rows[0];
+          data = {
+            t: r.title, m: r.message, f: r.from_name,
+            s: r.sign, c: r.color, p: r.photo_url,
+            song: r.song_title ? { title: r.song_title, artist: r.song_artist, art: r.song_art, preview: r.song_preview } : null
+          };
+        }
+      } catch(e) {}
     }
-    // fallback: legacy sessionStorage key
+
+    // fallback legacy encoded
+    if (!data) {
+      const encoded = params.get('d');
+      if (encoded) { try { data = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) {} }
+    }
     if (!data) {
       const key = params.get('k');
       if (key) { try { data = JSON.parse(sessionStorage.getItem(key)); } catch(e) {} }
@@ -196,8 +230,8 @@
     if (!data) {
       data = { t:'For you', m:'semangat yaa,\njangan lupa makan hari ini', f:'Your beloved sister', s:'none', c:'grey', p:null, song:null };
     }
-    cardData = data;
 
+    cardData = data;
     document.getElementById('card-title').textContent  = (data.t || 'TITLE').toUpperCase();
     document.getElementById('card-message').innerHTML  = (data.m || '').replace(/\n/g,'<br>');
     document.getElementById('card-from').textContent   = data.f || 'Your name';
@@ -206,8 +240,10 @@
     if (data.s === 'kiss') document.getElementById('card-kiss').classList.add('visible');
 
     if (data.p) {
-      document.getElementById('card-photo').src = data.p;
-      document.getElementById('card-photo').style.display = 'block';
+      const photo = document.getElementById('card-photo');
+      photo.crossOrigin = 'anonymous';
+      photo.src = data.p;
+      photo.style.display = 'block';
       document.getElementById('card-photo-placeholder').style.display = 'none';
     }
 
@@ -222,40 +258,35 @@
 
   function handleFlip() {
     const flipper = document.getElementById('card-flipper');
-    if (!hasFlipped) {
-      // First flip: show letter, trigger music
+    const isNowFlipped = flipper.classList.toggle('flipped');
+
+    if (!hasFlipped && isNowFlipped) {
+      // First flip ke letter — trigger musik
       hasFlipped = true;
-      flipper.classList.add('flipped');
       document.getElementById('flip-hint-text').style.opacity = '0';
+
       if (cardData.song && cardData.song.preview) {
-        document.getElementById('music-player').classList.add('visible');
-        const audio = document.getElementById('preview-audio');
-        audio.src = cardData.song.preview;
-        const promise = audio.play();
-        if (promise !== undefined) {
-          promise.then(() => {
-            isPlaying = true; musicStarted = true; updatePlayBtn();
-            audio.pause();
-            setTimeout(() => {
-              audio.play().then(() => { isPlaying = true; updatePlayBtn(); }).catch(() => {});
-            }, 900);
-          }).catch(() => {
-            musicStarted = true;
-            isPlaying = false; updatePlayBtn();
-            const sub = document.querySelector('.music-sub');
-            if (sub) sub.textContent = 'tap ▶ to play';
+        setTimeout(() => {
+          const player = document.getElementById('music-player');
+          player.classList.add('visible');
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => { player.classList.add('show'); });
           });
-        }
-      } else {
-        musicStarted = true;
+          const audio = document.getElementById('preview-audio');
+          audio.play()
+            .then(() => { isPlaying = true; updatePlayBtn(); })
+            .catch(() => {
+              isPlaying = false; updatePlayBtn();
+              document.querySelector('.music-sub').textContent = 'tap ▶ to play';
+            });
+        }, 850);
       }
     } else {
-      // Subsequent flips: toggle bebas
-      const isNowFlipped = flipper.classList.toggle('flipped');
+      // Flip bebas bolak-balik
       const hint = document.getElementById('flip-hint-text');
-      hint.textContent = isNowFlipped ? 'click to see front ↺' : 'click to see back ↺';
+      hint.textContent = isNowFlipped ? 'click to see polaroid ↺' : 'click to see letter ↺';
       hint.style.opacity = '0.4';
-      setTimeout(() => { hint.style.opacity = '0'; }, 1500);
+      setTimeout(() => { hint.style.opacity = '0'; }, 1800);
     }
   }
 
