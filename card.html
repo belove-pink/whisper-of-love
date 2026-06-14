@@ -3,100 +3,42 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Create your whisper — Whisper of Love</title>
+<title>Someone sent you a whisper 💌</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background-color: #4a4542; min-height: 100vh; font-family: 'DM Sans', sans-serif; color: #f0ede8; }
-
-  nav { padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; }
-  .nav-logo { display: block; text-decoration: none; }
-  .nav-logo-text {
-    font-family: 'DM Serif Display', serif;
-    font-style: italic;
-    font-size: 22px;
-    color: #f0ede8;
-    letter-spacing: 0.01em;
+  body {
+    background-color: #4a4542; min-height: 100vh;
+    font-family: 'DM Sans', sans-serif; color: #f0ede8;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; position: relative; overflow-x: hidden;
   }
-  .nav-steps { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #a09890; }
-  .nav-steps .step { cursor: pointer; padding: 4px 10px; border-radius: 20px; transition: background 0.2s; }
-  .nav-steps .step.active { background: rgba(240,237,232,0.15); color: #f0ede8; }
+  .ornament { position: fixed; pointer-events: none; opacity: 0.3; }
+  .ornament-butterfly { left: -40px; top: 50%; transform: translateY(-60%); width: 180px; }
+  .ornament-heart { right: -40px; top: 50%; transform: translateY(-40%); width: 180px; }
 
-  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: calc(100vh - 70px); align-items: start; padding: 20px 40px 60px; }
-  .form-side { padding-right: 48px; padding-top: 20px; }
-  .form-section { margin-bottom: 24px; }
-  .form-label { font-size: 14px; font-weight: 400; color: #d4cfc9; margin-bottom: 10px; display: block; }
+  .intro-text { font-family: 'DM Serif Display', serif; font-style: italic; font-size: clamp(13px,2vw,17px); color: rgba(240,237,232,0.55); margin-bottom: 28px; letter-spacing: 0.04em; text-align: center; animation: fadeIn 1.2s ease both; }
 
-  .form-input, .form-textarea {
-    width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 10px; color: #f0ede8; font-family: 'DM Sans', sans-serif;
-    font-size: 14px; padding: 12px 16px; outline: none; transition: border-color 0.2s;
-  }
-  .form-input::placeholder, .form-textarea::placeholder { color: #807870; }
-  .form-input:focus, .form-textarea:focus { border-color: rgba(255,255,255,0.4); }
-  .form-textarea { resize: none; height: 110px; line-height: 1.6; }
+  .stamp-flip-wrap { perspective: 1000px; width: clamp(280px,38vw,340px); height: clamp(374px,50vw,454px); cursor: pointer; animation: floatIn 0.9s cubic-bezier(0.2,0,0.2,1) both; }
+  @keyframes floatIn { from{opacity:0;transform:translateY(30px) scale(0.95)} to{opacity:1;transform:none} }
+  @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 
-  /* music search */
-  .music-search-wrap { position: relative; display: flex; flex-direction: column; gap: 8px; }
-  .music-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #3a3734; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; z-index: 200; overflow: hidden; display: none; max-height: 260px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-  .music-dropdown.open { display: block; }
-  .music-result { padding: 10px 14px; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; gap: 10px; }
-  .music-result:hover { background: rgba(255,255,255,0.08); }
-  .music-result img { width: 36px; height: 36px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
-  .music-result-info { overflow: hidden; }
-  .music-result-title { font-size: 13px; color: #f0ede8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .music-result-artist { font-size: 11px; color: #a09890; }
-  .music-searching { padding: 12px 14px; font-size: 13px; color: #a09890; text-align: center; }
-  .music-selected { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; }
-  .ms-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
-  .ms-info { flex: 1; overflow: hidden; }
-  .ms-title { font-size: 13px; color: #f0ede8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ms-artist { font-size: 11px; color: #a09890; }
-  .ms-clear { background: none; border: none; color: #a09890; cursor: pointer; font-size: 16px; padding: 0 4px; }
-
-  /* sign */
-  .sign-row { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
-  .sign-option { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s, transform 0.15s; position: relative; }
-  .sign-option.selected { border-color: #f0ede8; transform: scale(1.1); }
-  .sign-none { background: #ccc; }
-  .sign-none::after { content: ''; position: absolute; top: 50%; left: 10%; width: 80%; height: 2px; background: #888; transform: rotate(-45deg); }
-  .sign-kiss { background: #c0392b; }
-
-  /* color swatches */
-  .color-grid { display: grid; grid-template-columns: repeat(6, 36px); gap: 10px; margin-top: 10px; }
-  .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s, transform 0.15s; overflow: hidden; }
-  .color-swatch.selected { border-color: #f0ede8; transform: scale(1.1); }
-
-  /* upload */
-  .upload-zone { border: 1.5px dashed rgba(255,255,255,0.25); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
-  .upload-zone:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.04); }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-zone p { font-size: 13px; color: #a09890; }
-  .upload-zone .upload-icon { font-size: 22px; margin-bottom: 4px; display: block; }
-
-  /* buttons */
-  .action-row { margin-top: 32px; }
-  .btn-primary { width: 100%; background: #f0ede8; color: #2a2825; border: none; border-radius: 100px; padding: 13px 24px; font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; }
-  .btn-primary:hover { background: #fff; transform: translateY(-1px); }
-
-  /* PREVIEW SIDE */
-  .preview-side { display: flex; flex-direction: column; align-items: center; padding-top: 20px; position: sticky; top: 20px; }
-
-  /* STAMP */
-  .stamp-flip-wrap { perspective: 1000px; width: 340px; height: 460px; cursor: pointer; }
-  .stamp-flip-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1); }
-  .stamp-flip-inner.flipped { transform: rotateY(180deg); }
-  .stamp-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-  .stamp-back-face { transform: rotateY(180deg); }
+  .stamp-flip-inner { width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .stamp-flip-inner.flipped { transform:rotateY(180deg); }
+  .stamp-face { position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden; }
+  .stamp-back-face { transform:rotateY(180deg); }
 
   .stamp-perforated {
-    width: 100%; height: 100%; background: #ece9e4; position: relative;
-    border-radius: 4px;
+    width:100%; height:100%; background:#ece9e4; position: relative;
+    /* Scalloped edge: punch holes using radial-gradient on the PARENT background */
+    /* This works on all browsers including Android Chrome */
     --s: 11px;
     --bg: #4a4542;
     --stamp: #ece9e4;
+    border-radius: 4px;
+    /* Use padding + background to simulate perforated edge */
     padding: var(--s);
     background-color: var(--stamp);
     background-image:
@@ -109,208 +51,143 @@
     background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
   }
 
-  
-  .letter-content { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 28px 26px 22px; background: #ece9e4; }
-  .letter-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #1a1714; text-decoration: underline; text-underline-offset: 5px; margin-bottom: 20px; text-align: center; font-style: normal; text-transform: uppercase; letter-spacing: 0.05em; min-height: 28px; }
-  .letter-message { flex: 1; font-family: 'Playfair Display', serif; font-style: italic; font-size: 13.5px; color: #2a2522; line-height: 1.8; text-align: center; display: flex; align-items: center; justify-content: center; white-space: pre-wrap; word-break: break-word; }
-  .letter-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; }
-  .letter-from { font-size: 12px; color: #5a5250; line-height: 1.5; }
-  .letter-from span { display: block; font-weight: 500; color: #2a2522; }
-  .letter-kiss { width: 58px; height: 42px; object-fit: cover; object-position: center 20%; display: none; }
-  .letter-kiss.visible { display: block; }
+  /* POLAROID face */
+  .polaroid-content { width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;background:#ece9e4;gap:12px; }
+  .polaroid-song { font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:#3a3530;text-align:center;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .polaroid-tilt { transform:rotate(-6deg); }
+  .polaroid-frame-wrap { position:relative;width:clamp(138px,18vw,168px);height:clamp(184px,24vw,224px);flex-shrink:0;background:#000;border-radius:8px;overflow:hidden; }
+  .polaroid-frame { position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:2;pointer-events:none; }
+  .photo-clip { position:absolute;inset:0;overflow:hidden;z-index:1; }
+  .polaroid-photo { position:absolute;width:100%;height:100%;object-fit:cover;object-position:center;display:none; }
+  .polaroid-placeholder { position:absolute;inset:0;background:#666; }
 
-  
-  .polaroid-content { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; background: #ece9e4; gap: 12px; }
-  .polaroid-song { font-family: 'Playfair Display', serif; font-style: italic; font-size: 13px; color: #3a3530; text-align: center; min-height: 18px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* LETTER face */
+  .letter-content { width:100%;height:100%;display:flex;flex-direction:column;padding:28px 26px 22px;background:#ece9e4; }
+  .letter-title { font-family:'DM Serif Display',serif;font-size:clamp(16px,3vw,22px);color:#1a1714;text-decoration:underline;text-underline-offset:5px;margin-bottom:18px;text-align:center;font-style:normal;text-transform:uppercase;letter-spacing:0.05em; }
+  .letter-message { flex:1;font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:#2a2522;line-height:1.8;text-align:center;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;word-break:break-word; }
+  .letter-footer { display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px; }
+  .letter-from { font-size:12px;color:#5a5250;line-height:1.5; }
+  .letter-from span { display:block;font-weight:500;color:#2a2522; }
+  .letter-kiss { width:58px;height:42px;object-fit:cover;object-position:center 20%;display:none; }
+  .letter-kiss.visible { display:block; }
 
-  .polaroid-tilt { transform: rotate(-6deg); }
-  
-  .polaroid-frame-wrap { position: relative; width: 168px; height: 224px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #000; }
-  .polaroid-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 2; pointer-events: none; }
-  
-  .photo-clip { position: absolute; inset: 0; overflow: hidden; cursor: grab; z-index: 1; }
-  .photo-clip:active { cursor: grabbing; }
-  .polaroid-photo { position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: center; user-select: none; display: none; top: 0; left: 0; }
-  .polaroid-placeholder { position: absolute; inset: 0; background: #555; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #bbb; }
+  .flip-hint { font-size:11px;color:rgba(240,237,232,0.35);margin-top:14px;letter-spacing:0.08em;user-select:none;transition:opacity 0.4s;animation:fadeIn 2s ease both;animation-delay:0.8s; }
 
-  .flip-hint { font-size: 11px; color: rgba(240,237,232,0.45); margin-top: 14px; letter-spacing: 0.06em; user-select: none; }
+  /* music player */
+  .music-player { display:none;margin-top:22px;background:rgba(0,0,0,0.28);border-radius:100px;padding:10px 20px;align-items:center;gap:12px;min-width:240px;animation:fadeIn 0.5s ease both; }
+  .music-player.visible { display:flex; }
+  .music-play-btn { width:32px;height:32px;border-radius:50%;background:#f0ede8;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;flex-shrink:0;transition:transform 0.15s; }
+  .music-play-btn:hover { transform:scale(1.08); }
+  .music-info { flex:1;overflow:hidden; }
+  .music-title-display { font-size:12px;color:#f0ede8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .music-sub { font-size:10px;color:rgba(240,237,232,0.5);margin-top:1px;transition:all 0.3s; }
+  .music-wave { display:flex;gap:2px;align-items:flex-end;height:16px; }
+  .bar { width:3px;background:rgba(240,237,232,0.5);border-radius:2px;height:4px;transition:height 0.15s ease; }
+  .bar.playing { animation:wave 1s ease-in-out infinite; }
+  .bar:nth-child(1).playing{animation-delay:0s}
+  .bar:nth-child(2).playing{animation-delay:0.2s}
+  .bar:nth-child(3).playing{animation-delay:0.4s}
+  .bar:nth-child(4).playing{animation-delay:0.1s}
+  .bar:nth-child(5).playing{animation-delay:0.3s}
+  @keyframes wave { 0%,100%{height:3px} 50%{height:15px} }
 
-  
-  .modal-overlay { position: fixed; inset: 0; background: rgba(30,28,26,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal-box { background: #3a3734; border-radius: 16px; padding: 32px; max-width: 380px; width: 90%; text-align: center; }
-  .modal-box h3 { font-family: 'DM Serif Display', serif; font-size: 22px; font-style: italic; margin-bottom: 8px; }
-  .modal-box p { font-size: 13px; color: #a09890; margin-bottom: 20px; line-height: 1.6; }
-  .link-box { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 16px; font-size: 11px; color: #d4cfc9; word-break: break-all; margin-bottom: 16px; text-align: left; }
-  .copy-btn { width: 100%; background: #f0ede8; color: #2a2825; border: none; border-radius: 100px; padding: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; }
-  .copy-btn:hover { background: #fff; }
-  .close-modal { background: transparent; border: none; color: #a09890; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-
-  @media (max-width: 768px) {
-    nav { padding: 16px 20px; }
-    .layout { grid-template-columns: 1fr; padding: 16px 20px 80px; gap: 24px; }
-    .form-side { padding-right: 0; }
-    .preview-side { position: static; order: -1; }
-    .stamp-flip-wrap { width: 260px; height: 348px; }
-    .polaroid-frame-wrap { width: 124px; height: 166px; }
-    .nav-steps { display: none; }
-    .action-row { margin-top: 20px; }
+  /* smooth music player entrance */
+  .music-player {
+    display:none; margin-top:22px;
+    background:rgba(0,0,0,0.28); border-radius:100px;
+    padding:10px 20px; align-items:center; gap:12px; min-width:240px;
+    opacity:0; transform:translateY(10px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
   }
-  @media (max-width: 480px) {
-    nav { padding: 14px 16px; }
-    .nav-logo-text { font-size: 18px; }
-    .layout { padding: 12px 16px 80px; gap: 20px; }
-    .stamp-flip-wrap { width: 240px; height: 320px; }
-    .polaroid-frame-wrap { width: 110px; height: 147px; }
-    .form-label { font-size: 13px; }
-    .form-input, .form-textarea { font-size: 13px; padding: 10px 14px; }
-    .color-grid { grid-template-columns: repeat(6, 32px); gap: 8px; }
-    .color-swatch { width: 32px; height: 32px; }
-    .modal-box { padding: 24px 20px; }
+  .music-player.visible { display:flex; }
+  .music-player.show { opacity:1; transform:translateY(0); }
+
+  .create-own { margin-top:28px;font-size:12px;color:rgba(240,237,232,0.38);text-decoration:none;letter-spacing:0.04em;transition:color 0.2s;animation:fadeIn 2.5s ease both;animation-delay:1s; }
+  .create-own:hover { color:rgba(240,237,232,0.75); }
+
+  @media (max-width:600px) {
+    .ornament { display:none; }
+    body { padding: 32px 16px; }
+    .stamp-flip-wrap { width: clamp(240px, 80vw, 300px); height: clamp(320px, 107vw, 400px); }
+    .polaroid-frame-wrap { width: clamp(110px, 30vw, 138px); height: clamp(147px, 40vw, 184px); }
+    .music-player { min-width: 0; width: 90vw; padding: 10px 16px; }
+  }
+  @media (max-width:380px) {
+    .stamp-flip-wrap { width: 220px; height: 294px; }
   }
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="index.html" class="nav-logo"><span class="nav-logo-text">Whisper of Love</span></a>
-  <div class="nav-steps">
-    <span class="step" id="step-polaroid" onclick="goToSide('polaroid')">Polaroid</span>
-    <span style="color:#605850">·</span>
-    <span class="step active" id="step-letter" onclick="goToSide('letter')">Letter</span>
-  </div>
-</nav>
+<img src="butterfly.png" class="ornament ornament-butterfly" alt=""/>
+<img src="heart.png" class="ornament ornament-heart" alt=""/>
 
-<div class="layout">
-  <div class="form-side">
+<p class="intro-text">someone is thinking of you ✦</p>
 
-    <!-- LETTER FORM -->
-    <div id="form-letter">
-      <div class="form-section">
-        <label class="form-label">Title:</label>
-        <input class="form-input" id="inp-title" type="text" placeholder="e.g. For you, always" oninput="updatePreview()"/>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Write your love message:</label>
-        <textarea class="form-textarea" id="inp-message" placeholder="love message" oninput="updatePreview()"></textarea>
-      </div>
-      <div class="form-section">
-        <label class="form-label">With love, who?:</label>
-        <input class="form-input" id="inp-from" type="text" placeholder="Your name" oninput="updatePreview()"/>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Pick your sign:</label>
-        <div class="sign-row">
-          <div class="sign-option sign-none selected" id="sign-none" onclick="setSign('none')"></div>
-          <div class="sign-option sign-kiss" id="sign-kiss" onclick="setSign('kiss')"></div>
-        </div>
-      </div>
-    </div>
+<div class="stamp-flip-wrap" onclick="handleFlip()">
+  <div class="stamp-flip-inner" id="card-flipper">
 
-    <!-- POLAROID FORM -->
-    <div id="form-polaroid" style="display:none">
-      <div class="form-section">
-        <label class="form-label">Choose your whisper:</label>
-        <div class="music-search-wrap">
-          <input class="form-input" id="inp-song" type="text" placeholder="Search a song..." oninput="searchSong()" autocomplete="off"/>
-          <div class="music-dropdown" id="music-dropdown"></div>
-          <div class="music-selected" id="music-selected" style="display:none">
-            <img class="ms-thumb" id="ms-thumb" src="" alt=""/>
-            <div class="ms-info">
-              <div class="ms-title" id="ms-title">—</div>
-              <div class="ms-artist" id="ms-artist">—</div>
-            </div>
-            <button class="ms-clear" onclick="clearSong()">✕</button>
-          </div>
-        </div>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Upload photo (3:4):</label>
-        <div class="upload-zone" id="upload-zone">
-          <input type="file" accept="image/*" onchange="handlePhoto(event)"/>
-          <span class="upload-icon">📷</span>
-          <p>Click or drag photo here</p>
-        </div>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Polaroid color:</label>
-        <div class="color-grid">
-          <div class="color-swatch selected" data-color="grey"     onclick="setColor('grey',this)" style="background:#c8c4c0"></div>
-          <div class="color-swatch" data-color="pink"     onclick="setColor('pink',this)" style="background:#e8a0a8"></div>
-          <div class="color-swatch" data-color="lavender" onclick="setColor('lavender',this)" style="background:#b8a8d0"></div>
-          <div class="color-swatch" data-color="teal"     onclick="setColor('teal',this)" style="background:#7ab8b8"></div>
-          <div class="color-swatch" data-color="navy"     onclick="setColor('navy',this)" style="background:#4a5880"></div>
-          <div class="color-swatch" data-color="maroon"   onclick="setColor('maroon',this)" style="background:#8a3a40"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="action-row">
-      <button class="btn-primary" onclick="showShare()">✦ Share this whisper</button>
-    </div>
-  </div>
-
-  <!-- PREVIEW SIDE -->
-  <div class="preview-side">
-    <div class="stamp-flip-wrap" onclick="flipStamp()">
-      <div class="stamp-flip-inner" id="stamp-flipper">
-
-        <!-- FRONT: Letter -->
-        <div class="stamp-face">
-          <div class="stamp-perforated">
-            <div class="letter-content">
-              <div class="letter-title" id="prev-title">TITLE</div>
-              <div class="letter-message" id="prev-message">love message</div>
-              <div class="letter-footer">
-                <div class="letter-from">With love,<br><span id="prev-from">Your name</span></div>
-                <img src="kiss.png" class="letter-kiss" id="prev-kiss" alt="kiss"/>
+    <!-- FRONT: Polaroid -->
+    <div class="stamp-face">
+      <div class="stamp-perforated">
+        <div class="polaroid-content">
+          <div class="polaroid-song" id="card-song"></div>
+          <div class="polaroid-tilt">
+            <div class="polaroid-frame-wrap">
+              <div class="photo-clip">
+                <div class="polaroid-placeholder" id="card-photo-placeholder"></div>
+                <img src="" class="polaroid-photo" id="card-photo" alt=""/>
               </div>
+              <img src="polaroid-grey.png" class="polaroid-frame" id="card-polaroid-frame" alt=""/>
             </div>
           </div>
         </div>
-
-        <!-- BACK: Polaroid -->
-        <div class="stamp-face stamp-back-face">
-          <div class="stamp-perforated">
-            <div class="polaroid-content">
-              <div class="polaroid-song" id="prev-song">song title</div>
-              <div class="polaroid-tilt">
-                <div class="polaroid-frame-wrap">
-                  <div class="photo-clip" id="prev-photo-clip">
-                    <div class="polaroid-placeholder" id="prev-photo-placeholder">3:4 photo</div>
-                    <img src="" class="polaroid-photo" id="prev-photo" alt="" draggable="false"/>
-                  </div>
-                  <img src="polaroid-grey.png" class="polaroid-frame" id="prev-polaroid-frame" alt=""/>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
-    <p class="flip-hint">click to flip</p>
+
+    <!-- BACK: Letter -->
+    <div class="stamp-face stamp-back-face">
+      <div class="stamp-perforated">
+        <div class="letter-content">
+          <div class="letter-title" id="card-title">TITLE</div>
+          <div class="letter-message" id="card-message"></div>
+          <div class="letter-footer">
+            <div class="letter-from">With love,<br><span id="card-from">Your name</span></div>
+            <img src="kiss.png" class="letter-kiss" id="card-kiss" alt=""/>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- SHARE MODAL -->
-<div class="modal-overlay" id="share-modal">
-  <div class="modal-box">
-    <h3>Your whisper is ready ✦</h3>
-    <p>Copy this link and send it to your person 💌</p>
-    <div class="link-box" id="share-link-box"></div>
-    <button class="copy-btn" onclick="copyLink()">Copy link</button>
-    <button class="close-modal" onclick="closeModal()">Close</button>
+<p class="flip-hint" id="flip-hint-text">click to flip</p>
+
+<div class="music-player" id="music-player">
+  <button class="music-play-btn" onclick="togglePlay(event)" id="play-btn">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="#2a2825"><polygon id="play-icon" points="5,3 19,12 5,21"/></svg>
+  </button>
+  <div class="music-info">
+    <div class="music-title-display" id="music-title-display">—</div>
+    <div class="music-sub">tap to play/pause</div>
+  </div>
+  <div class="music-wave">
+    <div class="bar" id="b1"></div><div class="bar" id="b2"></div>
+    <div class="bar" id="b3"></div><div class="bar" id="b4"></div>
+    <div class="bar" id="b5"></div>
   </div>
 </div>
+
+<a href="create.html" class="create-own">create your own whisper →</a>
+
+<!-- Hidden audio for iTunes preview -->
+<audio id="preview-audio" preload="none"></audio>
 
 <script>
-  let isFlipped = false;
-  let currentSign = 'none';
-  let currentColor = 'grey';
-  let photoData = null;
-  let selectedSong = null;
-  let searchTimer = null;
+  let hasFlipped = false;
+  let musicStarted = false;
+  let isPlaying = false;
+  let cardData = {};
 
   const polaroidFrames = {
     grey:'polaroid-grey.png', pink:'polaroid-pink.png',
@@ -318,266 +195,132 @@
     navy:'polaroid-navy.png', maroon:'polaroid-maroon.png'
   };
 
-  // FLIP
-  function flipStamp() {
-    isFlipped = !isFlipped;
-    document.getElementById('stamp-flipper').classList.toggle('flipped', isFlipped);
-    document.getElementById('form-letter').style.display   = isFlipped ? 'none'  : 'block';
-    document.getElementById('form-polaroid').style.display = isFlipped ? 'block' : 'none';
-    document.getElementById('step-letter').classList.toggle('active', !isFlipped);
-    document.getElementById('step-polaroid').classList.toggle('active', isFlipped);
-  }
-  function goToSide(side) { if (isFlipped !== (side==='polaroid')) flipStamp(); }
+  const SUPA_URL = 'https://wsahegkcmbtlwnxhojun.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYWhlZ2tjbWJ0bHdueGhvanVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDQ0MDIsImV4cCI6MjA5NjkyMDQwMn0.KRwudd80t0GQtOqmXyga_0Sar4LtnTzvockctR4tnGs';
 
-  // SIGN
-  function setSign(val) {
-    currentSign = val;
-    document.getElementById('sign-none').classList.toggle('selected', val==='none');
-    document.getElementById('sign-kiss').classList.toggle('selected', val==='kiss');
-    document.getElementById('prev-kiss').classList.toggle('visible', val==='kiss');
-  }
+  async function loadCard() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    let data = null;
 
-  // COLOR
-  function setColor(color, el) {
-    currentColor = color;
-    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('prev-polaroid-frame').src = polaroidFrames[color];
-  }
-
-  // SUPABASE config
-  const SUPA_URL    = 'https://wsahegkcmbtlwnxhojun.supabase.co';
-  const SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzYWhlZ2tjbWJ0bHdueGhvanVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDQ0MDIsImV4cCI6MjA5NjkyMDQwMn0.KRwudd80t0GQtOqmXyga_0Sar4LtnTzvockctR4tnGs';
-  const SUPA_BUCKET = 'photos';
-  let photoUrl = null;
-
-  // PHOTO — auto-crop 3:4, upload to Supabase, store public URL
-  function handlePhoto(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const original = new Image();
-      original.onload = () => {
-        const targetRatio = 3/4;
-        let sw = original.width, sh = original.height;
-        if (sw/sh > targetRatio) { sw = sh * targetRatio; }
-        else { sh = sw / targetRatio; }
-        const sx = (original.width - sw) / 2;
-        const sy = (original.height - sh) / 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = 480; canvas.height = 640;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(original, sx, sy, sw, sh, 0, 0, 480, 640);
-        // Show preview immediately
-        const img = document.getElementById('prev-photo');
-        img.src = canvas.toDataURL('image/jpeg', 0.8);
-        img.style.display = 'block';
-        document.getElementById('prev-photo-placeholder').style.display = 'none';
-        document.getElementById('upload-zone').querySelector('p').textContent = 'Uploading...';
-        enableDrag(document.getElementById('prev-photo-clip'), img);
-        // Upload to Supabase Storage
-        canvas.toBlob(async blob => {
-          const filename = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + '.jpg';
-          try {
-            const res = await fetch(SUPA_URL + '/storage/v1/object/' + SUPA_BUCKET + '/' + filename, {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
-              body: blob
-            });
-            if (res.ok) {
-              photoUrl = SUPA_URL + '/storage/v1/object/public/' + SUPA_BUCKET + '/' + filename;
-              document.getElementById('upload-zone').querySelector('p').textContent = 'Photo uploaded';
-            } else {
-              document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
-              photoUrl = null;
-            }
-          } catch(err) {
-            document.getElementById('upload-zone').querySelector('p').textContent = 'Upload failed, try again';
-            photoUrl = null;
-          }
-        }, 'image/jpeg', 0.8);
-      };
-      original.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function enableDrag(clip, img) {
-    let dragging = false, startX, startY, origLeft, origTop;
-
-    function clampPos(left, top) {
-      const cw = clip.offsetWidth, ch = clip.offsetHeight;
-      const iw = img.offsetWidth, ih = img.offsetHeight;
-      // photo must be at least as big as clip (object-fit:cover guarantees this at 100%)
-      const minLeft = Math.min(0, cw - iw);
-      const minTop  = Math.min(0, ch - ih);
-      return {
-        left: Math.max(minLeft, Math.min(0, left)),
-        top:  Math.max(minTop,  Math.min(0, top))
-      };
-    }
-
-    clip.addEventListener('mousedown', e => {
-      dragging = true; startX = e.clientX; startY = e.clientY;
-      origLeft = parseInt(img.style.left)||0; origTop = parseInt(img.style.top)||0;
-      e.preventDefault();
-    });
-    window.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const p = clampPos(origLeft + e.clientX - startX, origTop + e.clientY - startY);
-      img.style.left = p.left + 'px';
-      img.style.top  = p.top  + 'px';
-    });
-    window.addEventListener('mouseup', () => dragging = false);
-    clip.addEventListener('touchstart', e => {
-      dragging = true;
-      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-      origLeft = parseInt(img.style.left)||0; origTop = parseInt(img.style.top)||0;
-    }, {passive:true});
-    window.addEventListener('touchmove', e => {
-      if (!dragging) return;
-      const p = clampPos(origLeft + e.touches[0].clientX - startX, origTop + e.touches[0].clientY - startY);
-      img.style.left = p.left + 'px';
-      img.style.top  = p.top  + 'px';
-    }, {passive:true});
-    window.addEventListener('touchend', () => dragging = false);
-  }
-
-  // MUSIC SEARCH — iTunes API
-  function searchSong() {
-    const q = document.getElementById('inp-song').value.trim();
-    const dd = document.getElementById('music-dropdown');
-    if (!q) { dd.classList.remove('open'); return; }
-    clearTimeout(searchTimer);
-    dd.innerHTML = '<div class="music-searching">Searching...</div>';
-    dd.classList.add('open');
-    searchTimer = setTimeout(() => {
-      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=6&media=music';
-      function renderResults(data) {
-        if (!data.results || !data.results.length) {
-          dd.innerHTML = '<div class="music-searching">No results found</div>';
-          return;
-        }
-        window._musicResults = data.results;
-        dd.innerHTML = data.results.map((s, i) =>
-          '<div class="music-result" onclick="selectSongIdx(' + i + ')">' +
-          '<img src="' + (s.artworkUrl60||'') + '" alt="" onerror="this.style.display=\'none\'"/>' +
-          '<div class="music-result-info">' +
-          '<div class="music-result-title">' + s.trackName + '</div>' +
-          '<div class="music-result-artist">' + s.artistName + '</div>' +
-          '</div></div>'
-        ).join('');
-      }
-      fetch(itunesUrl)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(renderResults)
-        .catch(() => {
-          fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(itunesUrl))
-            .then(r => r.json())
-            .then(proxy => renderResults(JSON.parse(proxy.contents)))
-            .catch(() => {
-              fetch('https://corsproxy.io/?' + encodeURIComponent(itunesUrl))
-                .then(r => r.json())
-                .then(renderResults)
-                .catch(() => { dd.innerHTML = '<div class="music-searching">Coba lagi / Check internet</div>'; });
-            });
+    if (id) {
+      try {
+        const res = await fetch(SUPA_URL + '/rest/v1/cards?id=eq.' + id + '&limit=1', {
+          headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
         });
-    }, 450);
-  }
-
-  function selectSongIdx(i) {
-    const s = (window._musicResults || [])[i];
-    if (s) selectSong(s.trackName, s.artistName, s.artworkUrl60 || '', s.previewUrl || '');
-  }
-
-    function selectSong(title, artist, art, preview) {
-    selectedSong = { title, artist, art, preview };
-    document.getElementById('inp-song').value = '';
-    document.getElementById('music-dropdown').classList.remove('open');
-    document.getElementById('ms-title').textContent  = title;
-    document.getElementById('ms-artist').textContent = artist;
-    document.getElementById('ms-thumb').src          = art;
-    document.getElementById('music-selected').style.display = 'flex';
-    document.getElementById('prev-song').textContent = title;
-  }
-
-  function clearSong() {
-    selectedSong = null;
-    document.getElementById('inp-song').value = '';
-    document.getElementById('music-selected').style.display = 'none';
-    document.getElementById('prev-song').textContent = 'song title';
-  }
-
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.music-search-wrap'))
-      document.getElementById('music-dropdown').classList.remove('open');
-  });
-
-  // PREVIEW
-  function updatePreview() {
-    document.getElementById('prev-title').textContent = (document.getElementById('inp-title').value || 'TITLE').toUpperCase();
-    document.getElementById('prev-message').innerHTML = (document.getElementById('inp-message').value || 'love message').replace(/\n/g,'<br>');
-    document.getElementById('prev-from').textContent  = document.getElementById('inp-from').value || 'Your name';
-  }
-
-  // SHARE — save to Supabase, generate short link
-  async function showShare() {
-    if (document.getElementById('upload-zone').querySelector('p').textContent === 'Uploading...') {
-      alert('Foto masih diupload, tunggu sebentar ya!');
-      return;
+        const rows = await res.json();
+        if (rows && rows[0]) {
+          const r = rows[0];
+          data = {
+            t: r.title, m: r.message, f: r.from_name,
+            s: r.sign, c: r.color, p: r.photo_url,
+            song: r.song_title ? { title: r.song_title, artist: r.song_artist, art: r.song_art, preview: r.song_preview } : null
+          };
+        }
+      } catch(e) {}
     }
 
-    const btn = document.querySelector('.btn-primary');
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
+    // fallback legacy encoded
+    if (!data) {
+      const encoded = params.get('d');
+      if (encoded) { try { data = JSON.parse(decodeURIComponent(escape(atob(encoded)))); } catch(e) {} }
+    }
+    if (!data) {
+      const key = params.get('k');
+      if (key) { try { data = JSON.parse(sessionStorage.getItem(key)); } catch(e) {} }
+    }
+    if (!data) {
+      data = { t:'For you', m:'semangat yaa,\njangan lupa makan hari ini', f:'Your beloved sister', s:'none', c:'grey', p:null, song:null };
+    }
 
-    try {
-      const res = await fetch(SUPA_URL + '/rest/v1/cards', {
-        method: 'POST',
-        headers: {
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SUPA_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          title:        document.getElementById('inp-title').value,
-          message:      document.getElementById('inp-message').value,
-          from_name:    document.getElementById('inp-from').value,
-          sign:         currentSign,
-          color:        currentColor,
-          photo_url:    photoUrl || null,
-          song_title:   selectedSong ? selectedSong.title   : null,
-          song_artist:  selectedSong ? selectedSong.artist  : null,
-          song_art:     selectedSong ? selectedSong.art     : null,
-          song_preview: selectedSong ? selectedSong.preview : null
-        })
-      });
+    cardData = data;
+    document.getElementById('card-title').textContent  = (data.t || 'TITLE').toUpperCase();
+    document.getElementById('card-message').innerHTML  = (data.m || '').replace(/\n/g,'<br>');
+    document.getElementById('card-from').textContent   = data.f || 'Your name';
+    document.getElementById('card-polaroid-frame').src = polaroidFrames[data.c] || polaroidFrames.grey;
 
-      if (!res.ok) throw new Error('Save failed');
-      const [card] = await res.json();
-      const base = window.location.origin + window.location.pathname.replace('create.html','');
-      const link = base + 'card.html?id=' + card.id;
-      document.getElementById('share-link-box').textContent = link;
-      document.getElementById('share-modal').classList.add('open');
-    } catch(e) {
-      alert('Gagal menyimpan, coba lagi ya!');
-    } finally {
-      btn.textContent = '✦ Share this whisper';
-      btn.disabled = false;
+    if (data.s === 'kiss') document.getElementById('card-kiss').classList.add('visible');
+
+    if (data.p) {
+      const photo = document.getElementById('card-photo');
+      // Handle both Supabase URL and base64 fallback
+      if (data.p.startsWith('data:')) {
+        photo.src = data.p;
+      } else {
+        photo.crossOrigin = 'anonymous';
+        photo.src = data.p;
+      }
+      photo.style.display = 'block';
+      document.getElementById('card-photo-placeholder').style.display = 'none';
+    }
+
+    if (data.song) {
+      document.getElementById('card-song').textContent = data.song.title || '';
+      document.getElementById('music-title-display').textContent = (data.song.title || '') + (data.song.artist ? ' · ' + data.song.artist : '');
+      if (data.song.preview) {
+        document.getElementById('preview-audio').src = data.song.preview;
+      }
     }
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(document.getElementById('share-link-box').textContent).then(() => {
-      document.querySelector('.copy-btn').textContent = 'Copied! ✓';
-      setTimeout(() => document.querySelector('.copy-btn').textContent = 'Copy link', 2000);
+  function handleFlip() {
+    const flipper = document.getElementById('card-flipper');
+    const isNowFlipped = flipper.classList.toggle('flipped');
+
+    if (!hasFlipped && isNowFlipped) {
+      // First flip ke letter — trigger musik
+      hasFlipped = true;
+      document.getElementById('flip-hint-text').style.opacity = '0';
+
+      if (cardData.song && cardData.song.preview) {
+        setTimeout(() => {
+          const player = document.getElementById('music-player');
+          player.classList.add('visible');
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => { player.classList.add('show'); });
+          });
+          const audio = document.getElementById('preview-audio');
+          audio.play()
+            .then(() => { isPlaying = true; updatePlayBtn(); })
+            .catch(() => {
+              isPlaying = false; updatePlayBtn();
+              document.querySelector('.music-sub').textContent = 'tap ▶ to play';
+            });
+        }, 850);
+      }
+    } else {
+      // Flip bebas bolak-balik
+      const hint = document.getElementById('flip-hint-text');
+      hint.textContent = isNowFlipped ? 'click to see polaroid ↺' : 'click to see letter ↺';
+      hint.style.opacity = '0.4';
+      setTimeout(() => { hint.style.opacity = '0'; }, 1800);
+    }
+  }
+
+  function playAudio() {
+    const audio = document.getElementById('preview-audio');
+    audio.play().then(() => { isPlaying = true; updatePlayBtn(); }).catch(() => {
+      const sub = document.querySelector('.music-sub');
+      if (sub) sub.textContent = 'tap ▶ to play';
     });
   }
-  function closeModal() { document.getElementById('share-modal').classList.remove('open'); }
+
+  function togglePlay(e) {
+    e.stopPropagation();
+    const audio = document.getElementById('preview-audio');
+    if (isPlaying) { audio.pause(); isPlaying = false; }
+    else { audio.play(); isPlaying = true; }
+    updatePlayBtn();
+  }
+
+  function updatePlayBtn() {
+    document.getElementById('play-icon').setAttribute('points', isPlaying ? '6,4 10,4 10,20 6,20 M14,4 18,4 18,20 14,20' : '5,3 19,12 5,21');
+    [1,2,3,4,5].forEach(i => document.getElementById('b'+i).classList.toggle('playing', isPlaying));
+  }
+
+  document.getElementById('preview-audio').addEventListener('ended', () => { isPlaying = false; updatePlayBtn(); });
+
+  loadCard();
 </script>
 </body>
 </html>
